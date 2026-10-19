@@ -1,0 +1,79 @@
+# Local stack: Nginx → php-fpm → MySQL + Redis, plus a queue worker.
+# Config comes from ./.env (gitignored). Compose also reads ./.env to fill ${VARS} below.
+name: shop
+
+
+services:
+  web:
+    build:
+      context: .
+      target: web
+    image: laravel-shop-api-web:local
+    ports:
+      - "127.0.0.1:8080:80"          # loopback only: not reachable from the LAN
+    depends_on:
+      - app
+    restart: unless-stopped
+
+
+  app:
+    build:
+      context: .
+      target: app
+    image: laravel-shop-api-app:local
+    env_file: .env
+    volumes:
+      - uploads:/var/www/html/storage/app   # uploads survive container recreation
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+  worker:
+    image: laravel-shop-api-app:local       # SAME image as app, different command
+    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--timeout=60"]
+    env_file: .env
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+
+  redis:
+    image: redis:7.4-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+
+volumes:
+  mysql-data:
+  redis-data:
+  uploads:
+
