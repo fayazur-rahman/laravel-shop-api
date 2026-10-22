@@ -33,3 +33,8 @@ output "private_subnets" {
   description = "List of private subnets"
   value       = [for subnet in aws_subnet.private : subnet.id]
 }
+
+output "nat_public_ip" {
+  description = "Public IP of the NAT Gateway"
+  value       = aws_eip.nat.public_ip
+}
