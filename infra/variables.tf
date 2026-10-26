@@ -39,3 +39,24 @@ variable "azs" {
     error_message = "Provide exactly two availability zones"
   }
 }
+
+variable "image_tag" {
+  description = "Image tag to run for both app and web images."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{7,40}$", var.image_tag))
+    error_message = "image_tag must be a git commit SHA (7-40 hex characters), never 'latest'."
+  }
+}
+
+variable "app_key" {
+  description = "Laravel App key passed via tf_var_app_key, never a tfvars file."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = startswith(var.app_key, "base64:")
+    error_message = "app_key must look like base64:... (output of php artisan key:generate --show)."
+  }
+}

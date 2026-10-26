@@ -1,3 +1,13 @@
+output "ecs_cluster_name" {
+  value = aws_ecs_cluster.main.name
+}
+
+
+output "web_log_group" {
+  value = aws_cloudwatch_log_group.web.name
+}
+
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = aws_vpc.main.id

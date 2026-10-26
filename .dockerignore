@@ -19,3 +19,4 @@ bootstrap/cache/*.php
 database/*.sqlite
 infra/*
 
+infra-shared/
