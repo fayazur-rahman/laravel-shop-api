@@ -62,7 +62,8 @@ EXPOSE 9000
 # Stage 3: web — Nginx with the public/ directory baked in
 ############################
 FROM nginx:1.28-alpine AS web
-COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+ENV PHP_FPM_HOST=app
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=vendor /var/www/html/public /var/www/html/public
 EXPOSE 80
 
