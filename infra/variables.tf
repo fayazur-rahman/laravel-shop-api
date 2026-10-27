@@ -60,3 +60,14 @@ variable "app_key" {
     error_message = "app_key must look like base64:... (output of php artisan key:generate --show)."
   }
 }
+
+variable "web_desired_count" {
+  description = "Number of web containers to run"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.web_desired_count >= 1 && var.web_desired_count <= 3
+    error_message = "web_desired_count must be between 1 and 3"
+  }
+}

@@ -7,6 +7,18 @@ output "web_log_group" {
   value = aws_cloudwatch_log_group.web.name
 }
 
+output "alb_dns_name" {
+  description = "Public DNS name of the ALB: the app's address"
+  value       = aws_lb.web.dns_name
+}
+
+output "web_target_group_arn" {
+  value = aws_lb_target_group.web.arn
+}
+
+output "web_security_group_id" {
+  value = aws_security_group.web.id
+}
 
 output "vpc_id" {
   description = "ID of the VPC"

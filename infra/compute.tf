@@ -62,13 +62,13 @@ resource "aws_security_group" "web" {
 }
 
 
-resource "aws_vpc_security_group_ingress_rule" "web_http_from_vpc" {
-  security_group_id = aws_security_group.web.id
-  description       = "HTTP from inside the VPC only"
-  cidr_ipv4         = aws_vpc.main.cidr_block
-  ip_protocol       = "tcp"
-  from_port         = 80
-  to_port           = 80
+resource "aws_vpc_security_group_ingress_rule" "web_http_from_alb" {
+  security_group_id            = aws_security_group.web.id
+  description                  = "HTTP only from the ALB"
+  referenced_security_group_id = aws_security_group.alb.id
+  ip_protocol                  = "tcp"
+  from_port                    = 80
+  to_port                      = 80
 }
 
 
@@ -149,12 +149,12 @@ resource "aws_ecs_task_definition" "web" {
 
 
 resource "aws_ecs_service" "web" {
-  name            = "web"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.web.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
+  name                              = "web"
+  cluster                           = aws_ecs_cluster.main.id
+  task_definition                   = aws_ecs_task_definition.web.arn
+  desired_count                     = var.web_desired_count
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = 60 # ALB verdicts ignored while a task boots
 
   network_configuration {
     subnets          = values(aws_subnet.private)[*].id
@@ -162,7 +162,16 @@ resource "aws_ecs_service" "web" {
     assign_public_ip = false
   }
 
+  # ECS registers every new task's IP here and deregisters stopping ones.
+  load_balancer {
+    target_group_arn = aws_lb_target_group.web.arn
+    container_name   = "web" # the Nginx container, the one with port 80
+    container_port   = 80
+  }
 
-  # A new task can't pull images until the private route to the NAT exists.
-  depends_on = [aws_route_table_association.private, aws_iam_role_policy_attachment.task_execution]
+  depends_on = [
+    aws_route_table_association.private,
+    aws_iam_role_policy_attachment.task_execution,
+    aws_lb_listener.http, # the target group must be attached to the ALB first
+  ]
 }
