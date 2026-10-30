@@ -71,3 +71,20 @@ variable "web_desired_count" {
     error_message = "web_desired_count must be between 1 and 3"
   }
 }
+
+variable "db_password" {
+  description = "RDS master password, from ~/.config/laravel-shop-dev/db_password via TF_VAR_db_password."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[!-~]{8,41}$", var.db_password)) && !can(regex("[/@\"]", var.db_password))
+    error_message = "db_password must be 8-41 printable ASCII characters with no / @ \" or spaces (RDS MySQL rules)."
+  }
+}
+
+variable "db_instance_class" {
+  description = "RDS instance size."
+  type        = string
+  default     = "db.t4g.micro"
+}

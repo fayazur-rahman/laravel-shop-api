@@ -1,3 +1,20 @@
+output "db_address" {
+  description = "RDS endpoint (DNS name) - the app's DB_HOST"
+  value       = aws_db_instance.mysql.address
+}
+
+output "db_instance_identifier" {
+  value = aws_db_instance.mysql.identifier
+}
+
+output "db_engine_version" {
+  value = aws_db_instance.mysql.engine_version_actual
+}
+
+output "db_security_group_id" {
+  value = aws_security_group.db.id
+}
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.main.name
 }
@@ -10,6 +27,10 @@ output "web_log_group" {
 output "alb_dns_name" {
   description = "Public DNS name of the ALB: the app's address"
   value       = aws_lb.web.dns_name
+}
+
+output "alb_security_group_id" {
+  value = aws_security_group.alb.id
 }
 
 output "web_target_group_arn" {
