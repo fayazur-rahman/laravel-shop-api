@@ -119,6 +119,16 @@ resource "aws_ecs_task_definition" "web" {
         { name = "APP_KEY", value = var.app_key },
         { name = "LOG_CHANNEL", value = "stderr" },
         { name = "LOG_LEVEL", value = "info" },
+        { name = "DB_CONNECTION", value = "mysql" },
+        { name = "DB_HOST", value = aws_db_instance.mysql.address },
+        { name = "DB_PORT", value = tostring(aws_db_instance.mysql.port) },
+        { name = "DB_DATABASE", value = aws_db_instance.mysql.db_name },
+        { name = "DB_USERNAME", value = aws_db_instance.mysql.username },
+        { name = "DB_PASSWORD", value = var.db_password }, # in state until Secrets Manager (W11 D3)
+        { name = "DB_TIMEOUT", value = "5" },
+        { name = "CACHE_STORE", value = "database" },      # until Redis (W10 D3)
+        { name = "SESSION_DRIVER", value = "database" },   # until Redis (W10 D3)
+        { name = "QUEUE_CONNECTION", value = "database" }, # jobs wait in a table until the worker (W10 D4)
       ]
       logConfiguration = { logDriver = "awslogs", options = local.log_options }
     },
