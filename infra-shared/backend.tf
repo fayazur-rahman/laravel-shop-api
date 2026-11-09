@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket       = "fayazur-state-bucket"
+    bucket       = "fayazur-tfstate"
     key          = "laravel-shop-api/infra-shared/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
