@@ -131,6 +131,12 @@ return [
     |
     */
 
-    'serializable_classes' => false,
+    // Allow-list only what this app caches: ProductController::index stores
+    // an Eloquent Collection of Product models under Product::LIST_CACHE_KEY.
+    // Every other class still comes back as __PHP_Incomplete_Class.
+    'serializable_classes' => [
+        \Illuminate\Database\Eloquent\Collection::class,
+        \App\Models\Product::class,
+    ],
 
 ];
