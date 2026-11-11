@@ -31,10 +31,14 @@ FROM php:8.4-fpm AS app
 # Extensions composer.json does NOT declare, but this app needs at runtime:
 #   pdo_mysql ← DB_CONNECTION=mysql
 #   redis     ← REDIS_CLIENT=phpredis
-RUN docker-php-ext-install pdo_mysql \
+#   pcntl     ← queue:work stops cleanly on SIGTERM (without it: 10 s, then exit 137)
+#   intl      ← Laravel's Number helpers (artisan db:show failed without it)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libicu-dev \
+ && docker-php-ext-install pdo_mysql pcntl intl \
  && pecl install redis \
  && docker-php-ext-enable redis \
- && rm -rf /tmp/pear
+ && rm -rf /tmp/pear /var/lib/apt/lists/*
 
 
 # Production php.ini defaults (display_errors off, etc.).
