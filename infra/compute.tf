@@ -126,8 +126,11 @@ resource "aws_ecs_task_definition" "web" {
         { name = "DB_USERNAME", value = aws_db_instance.mysql.username },
         { name = "DB_PASSWORD", value = var.db_password }, # in state until Secrets Manager (W11 D3)
         { name = "DB_TIMEOUT", value = "5" },
-        { name = "CACHE_STORE", value = "database" },      # until Redis (W10 D3)
-        { name = "SESSION_DRIVER", value = "database" },   # until Redis (W10 D3)
+        { name = "REDIS_CLIENT", value = "phpredis" },
+        { name = "REDIS_HOST", value = aws_elasticache_cluster.redis.cache_nodes[0].address },
+        { name = "REDIS_PORT", value = tostring(aws_elasticache_cluster.redis.cache_nodes[0].port) },
+        { name = "CACHE_STORE", value = "redis" },         # Redis db 1
+        { name = "SESSION_DRIVER", value = "redis" },      # Redis db 0
         { name = "QUEUE_CONNECTION", value = "database" }, # jobs wait in a table until the worker (W10 D4)
       ]
       logConfiguration = { logDriver = "awslogs", options = local.log_options }

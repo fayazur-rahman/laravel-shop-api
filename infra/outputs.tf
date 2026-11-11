@@ -1,3 +1,15 @@
+output "redis_address" {
+  value = aws_elasticache_cluster.redis.cache_nodes[0].address
+}
+
+output "cache_cluster_id" {
+  value = aws_elasticache_cluster.redis.cluster_id
+}
+
+output "cache_security_group_id" {
+  value = aws_security_group.cache.id
+}
+
 output "db_address" {
   description = "RDS endpoint (DNS name) - the app's DB_HOST"
   value       = aws_db_instance.mysql.address

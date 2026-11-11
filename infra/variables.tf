@@ -88,3 +88,9 @@ variable "db_instance_class" {
   type        = string
   default     = "db.t4g.micro"
 }
+
+variable "cache_node_type" {
+  description = "ElastiCache node size"
+  type        = string
+  default     = "cache.t4g.micro"
+}
