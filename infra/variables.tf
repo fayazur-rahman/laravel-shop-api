@@ -94,3 +94,20 @@ variable "cache_node_type" {
   type        = string
   default     = "cache.t4g.micro"
 }
+
+variable "worker_desired_count" {
+  description = "How many queue workers to run"
+  type        = number
+  default     = 1
+}
+
+variable "worker_mail_mailer" {
+  description = "Mail driver for the worker: log (default) or smtp (used to break it on purpose)"
+  type        = string
+  default     = "log"
+
+  validation {
+    condition     = contains(["log", "smtp"], var.worker_mail_mailer)
+    error_message = "worker_mail_mailer must be log or smtp."
+  }
+}

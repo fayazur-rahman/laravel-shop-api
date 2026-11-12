@@ -91,6 +91,30 @@ locals {
   }
 }
 
+locals {
+  # Shared by the app container (php-fpm) and the worker: same code, same config.
+  app_environment = [
+    { name = "APP_NAME", value = "laravel-shop-api" },
+    { name = "APP_ENV", value = var.environment },
+    { name = "APP_DEBUG", value = "false" },
+    { name = "APP_KEY", value = var.app_key },
+    { name = "LOG_CHANNEL", value = "stderr" },
+    { name = "LOG_LEVEL", value = "info" },
+    { name = "DB_CONNECTION", value = "mysql" },
+    { name = "DB_HOST", value = aws_db_instance.mysql.address },
+    { name = "DB_PORT", value = tostring(aws_db_instance.mysql.port) },
+    { name = "DB_DATABASE", value = aws_db_instance.mysql.db_name },
+    { name = "DB_USERNAME", value = aws_db_instance.mysql.username },
+    { name = "DB_PASSWORD", value = var.db_password }, # in state until Secrets Manager (W11 D3)
+    { name = "DB_TIMEOUT", value = "5" },
+    { name = "REDIS_CLIENT", value = "phpredis" },
+    { name = "REDIS_HOST", value = aws_elasticache_cluster.redis.cache_nodes[0].address },
+    { name = "REDIS_PORT", value = tostring(aws_elasticache_cluster.redis.cache_nodes[0].port) },
+    { name = "CACHE_STORE", value = "redis" },      # Redis db 1
+    { name = "SESSION_DRIVER", value = "redis" },   # Redis db 0
+    { name = "QUEUE_CONNECTION", value = "redis" }, # jobs wait in a table until the worker (W10 D4)
+  ]
+}
 
 resource "aws_ecs_task_definition" "web" {
   family                   = "${local.name}-web"
@@ -109,30 +133,10 @@ resource "aws_ecs_task_definition" "web" {
 
   container_definitions = jsonencode([
     {
-      name      = "app"
-      image     = "${data.aws_ecr_repository.app.repository_url}:${var.image_tag}"
-      essential = true
-      environment = [
-        { name = "APP_NAME", value = "laravel-shop-api" },
-        { name = "APP_ENV", value = var.environment },
-        { name = "APP_DEBUG", value = "false" },
-        { name = "APP_KEY", value = var.app_key },
-        { name = "LOG_CHANNEL", value = "stderr" },
-        { name = "LOG_LEVEL", value = "info" },
-        { name = "DB_CONNECTION", value = "mysql" },
-        { name = "DB_HOST", value = aws_db_instance.mysql.address },
-        { name = "DB_PORT", value = tostring(aws_db_instance.mysql.port) },
-        { name = "DB_DATABASE", value = aws_db_instance.mysql.db_name },
-        { name = "DB_USERNAME", value = aws_db_instance.mysql.username },
-        { name = "DB_PASSWORD", value = var.db_password }, # in state until Secrets Manager (W11 D3)
-        { name = "DB_TIMEOUT", value = "5" },
-        { name = "REDIS_CLIENT", value = "phpredis" },
-        { name = "REDIS_HOST", value = aws_elasticache_cluster.redis.cache_nodes[0].address },
-        { name = "REDIS_PORT", value = tostring(aws_elasticache_cluster.redis.cache_nodes[0].port) },
-        { name = "CACHE_STORE", value = "redis" },         # Redis db 1
-        { name = "SESSION_DRIVER", value = "redis" },      # Redis db 0
-        { name = "QUEUE_CONNECTION", value = "database" }, # jobs wait in a table until the worker (W10 D4)
-      ]
+      name             = "app"
+      image            = "${data.aws_ecr_repository.app.repository_url}:${var.image_tag}"
+      essential        = true
+      environment      = local.app_environment
       logConfiguration = { logDriver = "awslogs", options = local.log_options }
     },
     {
