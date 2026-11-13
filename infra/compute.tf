@@ -113,6 +113,9 @@ locals {
     { name = "CACHE_STORE", value = "redis" },      # Redis db 1
     { name = "SESSION_DRIVER", value = "redis" },   # Redis db 0
     { name = "QUEUE_CONNECTION", value = "redis" }, # jobs wait in a table until the worker (W10 D4)
+    { name = "FILESYSTEM_DISK", value = "s3" },     # uploads go to S3, not the task's disk
+    { name = "AWS_BUCKET", value = aws_s3_bucket.uploads.bucket },
+    { name = "AWS_DEFAULT_REGION", value = var.region },
   ]
 }
 
@@ -123,6 +126,7 @@ resource "aws_ecs_task_definition" "web" {
   cpu                      = 512  # 0.5 vCPU, shared by both containers
   memory                   = 1024 # 1 GB
   execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.task.arn # what the app's code may do (S3 uploads)
 
 
   runtime_platform {
