@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install PHP 8.4 (same version as the image)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies from composer.lock
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run the tests
+        run: vendor/bin/phpunit
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # lets this job ask GitHub for an OIDC token
+    env:
+      REGISTRY: 689330778407.dkr.ecr.us-east-1.amazonaws.com
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Work out the image tag (first 7 characters of the commit)
+        run: echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Build the app image (php-fpm)
+        run: docker build --target app -t "$REGISTRY/laravel-shop-api-app:$TAG" .
+
+      - name: Build the web image (Nginx)
+        run: docker build --target web -t "$REGISTRY/laravel-shop-api-web:$TAG" .
+
+      - name: Get temporary AWS credentials (OIDC)
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::689330778407:role/laravel-shop-api-github-actions
+          aws-region: us-east-1
+
+      - name: Who am I in AWS?
+        if: github.event_name == 'push'
+        run: aws sts get-caller-identity --query Arn --output text
+
+      - name: Log Docker in to ECR
+        if: github.event_name == 'push'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push both images
+        if: github.event_name == 'push'
+        run: |
+          docker push "$REGISTRY/laravel-shop-api-app:$TAG"
+          docker push "$REGISTRY/laravel-shop-api-web:$TAG"
