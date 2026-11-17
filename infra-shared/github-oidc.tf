@@ -20,7 +20,7 @@ resource "aws_iam_role" "github_actions" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:fayazur-rahman/laravel-shop-api:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:fayazur-rahman@141312171/laravel-shop-api@1391014470:ref:refs/heads/main"
         }
       }
     }]

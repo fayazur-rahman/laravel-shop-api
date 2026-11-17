@@ -50,13 +50,6 @@ jobs:
       - name: Build the web image (Nginx)
         run: docker build --target web -t "$REGISTRY/laravel-shop-api-web:$TAG" .
 
-      - name: TEMP — show the OIDC token claims
-        if: github.event_name == 'push'
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
-          echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{sub, aud, iss, ref, repository}'
-
       - name: Get temporary AWS credentials (OIDC)
         if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v6
