@@ -1,0 +1,89 @@
+name: Infra
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['infra/**', '.github/workflows/infra.yml']
+  push:
+    branches: [main]
+    paths: ['infra/**', '.github/workflows/infra.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-staging # one run touches staging at a time
+  cancel-in-progress: false
+
+env:
+  TF_WORKSPACE: staging # every terraform command uses the staging state
+  TF_IN_AUTOMATION: 'true'
+  TF_VAR_app_key: ${{ secrets.STAGING_APP_KEY }}
+  TF_VAR_db_password: ${{ secrets.STAGING_DB_PASSWORD }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install Terraform (same version as the laptop)
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.9
+          terraform_wrapper: false
+
+      - name: Get read-only AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::689330778407:role/laravel-shop-api-terraform-plan
+          aws-region: us-east-1
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform plan (staging)
+        run: terraform plan -input=false -lock=false -var-file=staging.tfvars
+
+  apply:
+    needs: plan
+    if: github.event_name == 'push'
+    environment: staging # waits here until a reviewer approves
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Install Terraform (same version as the laptop)
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.9
+          terraform_wrapper: false
+
+      - name: Get apply AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::689330778407:role/laravel-shop-api-terraform-apply
+          aws-region: us-east-1
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform plan (staging), saved to a file
+        run: terraform plan -input=false -var-file=staging.tfvars -out=tfplan
+
+      - name: terraform apply exactly that file
+        run: terraform apply -input=false tfplan

@@ -16,6 +16,14 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = { Name = "${local.name}-vpc" }
+
+  lifecycle {
+    # The workspace picks the state; the tfvars file picks the names. They must agree.
+    precondition {
+      condition     = var.environment == (terraform.workspace == "default" ? "dev" : terraform.workspace)
+      error_message = "Workspace \"${terraform.workspace}\" doesn't match environment \"${var.environment}\": use the tfvars file named after the workspace (default = dev)."
+    }
+  }
 }
 
 resource "aws_internet_gateway" "main" {
@@ -106,3 +114,4 @@ resource "aws_route_table_association" "private" {
   subnet_id      = each.value.id
   route_table_id = aws_route_table.private.id
 }
+

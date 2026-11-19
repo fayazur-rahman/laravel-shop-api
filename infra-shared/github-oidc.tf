@@ -1,3 +1,8 @@
+locals {
+  # GitHub's token subject for this repo: owner@id/repo@id (seen in the claims on W11 D1)
+  github_repo = "repo:fayazur-rahman@141312171/laravel-shop-api@1391014470"
+}
+
 # ─── GitHub Actions → AWS without stored keys (OIDC) ─────────────────────────
 
 # 1. Tell this AWS account to trust tokens signed by GitHub Actions.
@@ -20,7 +25,7 @@ resource "aws_iam_role" "github_actions" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:fayazur-rahman@141312171/laravel-shop-api@1391014470:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "${local.github_repo}:ref:refs/heads/main"
         }
       }
     }]
@@ -56,4 +61,57 @@ resource "aws_iam_role_policy" "github_actions_ecr_push" {
       },
     ]
   })
+}
+
+# ─── Terraform in CI: one role to read (plan), one to change (apply) ─────────
+
+resource "aws_iam_role" "terraform_plan" {
+  name = "laravel-shop-api-terraform-plan"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:sub" = [
+            "${local.github_repo}:pull_request",        # plan on a pull request
+            "${local.github_repo}:ref:refs/heads/main", # plan on main, before the gate
+          ]
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_plan_read_only" {
+  role       = aws_iam_role.terraform_plan.name
+  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}
+
+resource "aws_iam_role" "terraform_apply" {
+  name = "laravel-shop-api-terraform-apply"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:sub" = "${local.github_repo}:environment:staging" # only the approved job
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "terraform_apply_admin" {
+  role       = aws_iam_role.terraform_apply.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
