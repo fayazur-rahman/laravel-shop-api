@@ -50,16 +50,6 @@ variable "image_tag" {
   }
 }
 
-variable "app_key" {
-  description = "Laravel App key passed via tf_var_app_key, never a tfvars file."
-  type        = string
-  sensitive   = true
-
-  validation {
-    condition     = startswith(var.app_key, "base64:")
-    error_message = "app_key must look like base64:... (output of php artisan key:generate --show)."
-  }
-}
 
 variable "web_desired_count" {
   description = "Number of web containers to run"
@@ -72,16 +62,6 @@ variable "web_desired_count" {
   }
 }
 
-variable "db_password" {
-  description = "RDS master password, from ~/.config/laravel-shop-dev/db_password via TF_VAR_db_password."
-  type        = string
-  sensitive   = true
-
-  validation {
-    condition     = can(regex("^[!-~]{8,41}$", var.db_password)) && !can(regex("[/@\"]", var.db_password))
-    error_message = "db_password must be 8-41 printable ASCII characters with no / @ \" or spaces (RDS MySQL rules)."
-  }
-}
 
 variable "db_instance_class" {
   description = "RDS instance size."

@@ -6,3 +6,7 @@ output "repository_urls" {
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
+
+output "app_key_secret_names" {
+  value = [for s in aws_secretsmanager_secret.app_key : s.name]
+}
