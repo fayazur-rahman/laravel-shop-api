@@ -97,7 +97,6 @@ locals {
     { name = "APP_NAME", value = "laravel-shop-api" },
     { name = "APP_ENV", value = var.environment },
     { name = "APP_DEBUG", value = "false" },
-    { name = "APP_KEY", value = var.app_key },
     { name = "LOG_CHANNEL", value = "stderr" },
     { name = "LOG_LEVEL", value = "info" },
     { name = "DB_CONNECTION", value = "mysql" },
@@ -105,7 +104,6 @@ locals {
     { name = "DB_PORT", value = tostring(aws_db_instance.mysql.port) },
     { name = "DB_DATABASE", value = aws_db_instance.mysql.db_name },
     { name = "DB_USERNAME", value = aws_db_instance.mysql.username },
-    { name = "DB_PASSWORD", value = var.db_password }, # in state until Secrets Manager (W11 D3)
     { name = "DB_TIMEOUT", value = "5" },
     { name = "REDIS_CLIENT", value = "phpredis" },
     { name = "REDIS_HOST", value = aws_elasticache_cluster.redis.cache_nodes[0].address },
@@ -141,6 +139,7 @@ resource "aws_ecs_task_definition" "web" {
       image            = "${data.aws_ecr_repository.app.repository_url}:${var.image_tag}"
       essential        = true
       environment      = local.app_environment
+      secrets          = local.app_secrets # injected by ECS when the container starts
       logConfiguration = { logDriver = "awslogs", options = local.log_options }
     },
     {
@@ -193,6 +192,7 @@ resource "aws_ecs_service" "web" {
   depends_on = [
     aws_route_table_association.private,
     aws_iam_role_policy_attachment.task_execution,
-    aws_lb_listener.http, # the target group must be attached to the ALB first
+    aws_iam_role_policy.task_execution_secrets, # tasks can't start without the secrets
+    aws_lb_listener.http,                       # the target group must be attached to the ALB first
   ]
 }

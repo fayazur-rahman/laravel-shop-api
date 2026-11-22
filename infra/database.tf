@@ -54,11 +54,10 @@ resource "aws_db_instance" "mysql" {
   storage_type      = "gp3"
   storage_encrypted = true
 
-  db_name             = "shop"
-  username            = "shop"
-  password_wo         = var.db_password # write-only: never stored in state
-  password_wo_version = 1               # bump to send a new password
-  port                = 3306
+  db_name                     = "shop"
+  username                    = "shop"
+  manage_master_user_password = true # RDS creates the password in Secrets Manager and rotates it
+  port                        = 3306
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.db.id]

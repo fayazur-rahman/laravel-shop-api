@@ -64,6 +64,7 @@ resource "aws_ecs_task_definition" "worker" {
       environment = concat(local.app_environment, [
         { name = "MAIL_MAILER", value = var.worker_mail_mailer }, # log = write mails to the log
       ])
+      secrets     = local.app_secrets
       stopTimeout = 90 # > --timeout, so SIGTERM lets the running job finish
       logConfiguration = {
         logDriver = "awslogs"
@@ -94,5 +95,6 @@ resource "aws_ecs_service" "worker" {
   depends_on = [
     aws_route_table_association.private,
     aws_iam_role_policy_attachment.task_execution,
+    aws_iam_role_policy.task_execution_secrets,
   ]
 }

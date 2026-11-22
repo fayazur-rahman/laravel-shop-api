@@ -76,6 +76,11 @@ output "internet_gateway_id" {
   value       = aws_internet_gateway.main.id
 }
 
+
+output "db_secret_arn" {
+  value = aws_db_instance.mysql.master_user_secret[0].secret_arn
+}
+
 output "public_subnet_ids" {
   description = "Public subnet IDs, keyed by AZ."
   value       = { for az, s in aws_subnet.public : az => s.id }
