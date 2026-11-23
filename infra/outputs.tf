@@ -106,3 +106,7 @@ output "nat_public_ip" {
   description = "Public IP of the NAT Gateway"
   value       = aws_eip.nat.public_ip
 }
+
+output "dashboard_url" {
+  value = "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards/dashboard/${aws_cloudwatch_dashboard.main.dashboard_name}"
+}
