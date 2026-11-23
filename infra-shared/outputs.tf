@@ -10,3 +10,7 @@ output "github_actions_role_arn" {
 output "app_key_secret_names" {
   value = [for s in aws_secretsmanager_secret.app_key : s.name]
 }
+
+output "alerts_topic_arn" {
+  value = aws_sns_topic.alerts.arn
+}
